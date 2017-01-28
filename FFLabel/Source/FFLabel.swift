@@ -10,42 +10,42 @@ import UIKit
 
 @objc
 public protocol FFLabelDelegate: NSObjectProtocol {
-    @objc optional func labelDidSelectedLinkText(label: FFLabel, text: String)
+    @objc optional func labelDidSelectedLinkText(_ label: FFLabel, text: String)
 }
 
-public class FFLabel: UILabel {
+open class FFLabel: UILabel {
 
-    public var linkTextColor = UIColor.blue()
-    public var selectedBackgroudColor = UIColor.lightGray()
-    public weak var delegate: FFLabelDelegate?
+    open var linkTextColor = UIColor.blue
+    open var selectedBackgroudColor = UIColor.lightGray
+    open weak var delegate: FFLabelDelegate?
     
     // MARK: - override properties
-    override public var text: String? {
+    override open var text: String? {
         didSet {
             updateTextStorage()
         }
     }
     
-    override public var attributedText: AttributedString? {
+    override open var attributedText: NSAttributedString? {
         didSet {
             updateTextStorage()
         }
     }
     
-    override public var font: UIFont! {
+    override open var font: UIFont! {
         didSet {
             updateTextStorage()
         }
     }
     
-    override public var textColor: UIColor! {
+    override open var textColor: UIColor! {
         didSet {
             updateTextStorage()
         }
     }
     
     // MARK: - upadte text storage and redraw text
-    private func updateTextStorage() {
+    fileprivate func updateTextStorage() {
         if attributedText == nil {
             return
         }
@@ -60,7 +60,7 @@ public class FFLabel: UILabel {
     }
     
     /// add link attribute
-    private func addLinkAttribute(_ attrStringM: NSMutableAttributedString) {
+    fileprivate func addLinkAttribute(_ attrStringM: NSMutableAttributedString) {
         if attrStringM.length == 0 {
             return
         }
@@ -80,23 +80,23 @@ public class FFLabel: UILabel {
     }
     
     /// use regex check all link ranges
-    private let patterns = ["[a-zA-Z]*://[a-zA-Z0-9/\\.]*", "#.*?#", "@[\\u4e00-\\u9fa5a-zA-Z0-9_-]*"]
-    private func regexLinkRanges(_ attrString: AttributedString) {
+    fileprivate let patterns = ["[a-zA-Z]*://[a-zA-Z0-9/\\.]*", "#.*?#", "@[\\u4e00-\\u9fa5a-zA-Z0-9_-]*"]
+    fileprivate func regexLinkRanges(_ attrString: NSAttributedString) {
         linkRanges.removeAll()
         let regexRange = NSRange(location: 0, length: attrString.string.characters.count)
         
         for pattern in patterns {
-            let regex = try! RegularExpression(pattern: pattern, options: RegularExpression.Options.dotMatchesLineSeparators)
-            let results = regex.matches(in: attrString.string, options: RegularExpression.MatchingOptions(rawValue: 0), range: regexRange)
+            let regex = try! NSRegularExpression(pattern: pattern, options: NSRegularExpression.Options.dotMatchesLineSeparators)
+            let results = regex.matches(in: attrString.string, options: NSRegularExpression.MatchingOptions(rawValue: 0), range: regexRange)
             
             for r in results {
-                linkRanges.append(r.range(at: 0))
+                linkRanges.append(r.rangeAt(0))
             }
         }
     }
     
     /// add line break mode
-    private func addLineBreak(_ attrString: AttributedString) -> NSMutableAttributedString {
+    fileprivate func addLineBreak(_ attrString: NSAttributedString) -> NSMutableAttributedString {
         let attrStringM = NSMutableAttributedString(attributedString: attrString)
         
         if attrStringM.length == 0 {
@@ -121,7 +121,7 @@ public class FFLabel: UILabel {
         return attrStringM
     }
     
-    public override func drawText(in rect: CGRect) {
+    open override func drawText(in rect: CGRect) {
         let range = glyphsRange()
         let offset = glyphsOffset(range)
 
@@ -129,11 +129,11 @@ public class FFLabel: UILabel {
         layoutManager.drawGlyphs(forGlyphRange: range, at: CGPoint.zero)
     }
     
-    private func glyphsRange() -> NSRange {
+    fileprivate func glyphsRange() -> NSRange {
         return NSRange(location: 0, length: textStorage.length)
     }
     
-    private func glyphsOffset(_ range: NSRange) -> CGPoint {
+    fileprivate func glyphsOffset(_ range: NSRange) -> CGPoint {
         let rect = layoutManager.boundingRect(forGlyphRange: range, in: textContainer)
         let height = (bounds.height - rect.height) * 0.5
         
@@ -141,14 +141,14 @@ public class FFLabel: UILabel {
     }
     
     // MARK: - touch events
-    public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    open override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let location = touches.first!.location(in: self)
         
         selectedRange = linkRangeAtLocation(location)
         modifySelectedAttribute(true)
     }
     
-    public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    open override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         let location = touches.first!.location(in: self)
         
         if let range = linkRangeAtLocation(location) {
@@ -162,23 +162,23 @@ public class FFLabel: UILabel {
         }
     }
     
-    public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    open override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if selectedRange != nil {
             let text = (textStorage.string as NSString).substring(with: selectedRange!)
-            delegate?.labelDidSelectedLinkText?(label: self, text: text)
+            delegate?.labelDidSelectedLinkText?(self, text: text)
             
             let when = DispatchTime.now() + Double(Int64(0.25 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)
-            DispatchQueue.main.after(when: when) {
+            DispatchQueue.main.asyncAfter(deadline: when){
                 self.modifySelectedAttribute(false)
             }
         }
     }
     
-    public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+    open override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         modifySelectedAttribute(false)
     }
     
-    private func modifySelectedAttribute(_ isSet: Bool) {
+    fileprivate func modifySelectedAttribute(_ isSet: Bool) {
         if selectedRange == nil {
             return
         }
@@ -190,7 +190,7 @@ public class FFLabel: UILabel {
         if isSet {
             attributes[NSBackgroundColorAttributeName] = selectedBackgroudColor
         } else {
-            attributes[NSBackgroundColorAttributeName] = UIColor.clear()
+            attributes[NSBackgroundColorAttributeName] = UIColor.clear
             selectedRange = nil
         }
         
@@ -199,7 +199,7 @@ public class FFLabel: UILabel {
         setNeedsDisplay()
     }
     
-    private func linkRangeAtLocation(_ location: CGPoint) -> NSRange? {
+    fileprivate func linkRangeAtLocation(_ location: CGPoint) -> NSRange? {
         if textStorage.length == 0 {
             return nil
         }
@@ -230,13 +230,13 @@ public class FFLabel: UILabel {
         prepareLabel()
     }
     
-    public override func layoutSubviews() {
+    open override func layoutSubviews() {
         super.layoutSubviews()
         
         textContainer.size = bounds.size
     }
     
-    private func prepareLabel() {
+    fileprivate func prepareLabel() {
         textStorage.addLayoutManager(layoutManager)
         layoutManager.addTextContainer(textContainer)
         
@@ -246,9 +246,9 @@ public class FFLabel: UILabel {
     }
     
     // MARK: lazy properties
-    private lazy var linkRanges = [NSRange]()
-    private var selectedRange: NSRange?
-    private lazy var textStorage = NSTextStorage()
-    private lazy var layoutManager = NSLayoutManager()
-    private lazy var textContainer = NSTextContainer()
+    fileprivate lazy var linkRanges = [NSRange]()
+    fileprivate var selectedRange: NSRange?
+    fileprivate lazy var textStorage = NSTextStorage()
+    fileprivate lazy var layoutManager = NSLayoutManager()
+    fileprivate lazy var textContainer = NSTextContainer()
 }
